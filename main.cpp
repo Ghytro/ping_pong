@@ -1,8 +1,11 @@
 #include "TXLib.h"
 #include <vector>
+#include <iostream>
 
 #define WIND_X_SIZE 800
 #define WIND_Y_SIZE 800
+#define MOUSE_LEFT_CLICK 1
+#define MOUSE_RIGHT_CLICK 2
 
 enum game_mode
 {
@@ -13,7 +16,7 @@ enum game_mode
     PAUSE,
 };
 
-enum button
+enum main_menu_button
 {
     PLAY,
     SETTINGS,
@@ -49,8 +52,26 @@ inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mo
     std::vector<RECT> temp;
     if (current_mode == MAIN_MENU)
     {
+        int
+            title_margin_left           = (WIND_X_SIZE - 446) / 2,
+            title_margin_top            = 100,
+            start_button_margin_left    = (WIND_X_SIZE - 256) / 2,
+            start_button_margin_top     = title_margin_top + 200,
+            settings_button_margin_left = (WIND_X_SIZE - 256) / 2,
+            settings_button_margin_top  = start_button_margin_top + 120,
+            quit_button_margin_left     = (WIND_X_SIZE - 256) / 2,
+            quit_button_margin_top      = settings_button_margin_top + 120;
 
+        temp.push_back({start_button_margin_left, start_button_margin_top, start_button_margin_left + 256, start_button_margin_top + 99});
+        temp.push_back({settings_button_margin_left, settings_button_margin_top, settings_button_margin_left + 256, settings_button_margin_top + 99});
+        temp.push_back({quit_button_margin_left, quit_button_margin_top, quit_button_margin_left + 256, quit_button_margin_top + 99});
     }
+    buttons = temp;
+}
+
+inline void hide_button(HDC button)
+{
+    txBitBlt(txDC(), 0, 0, 0, 0, button);
 }
 
 int main()
@@ -90,14 +111,34 @@ int main()
     game_mode current_mode = MAIN_MENU;
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
-        POINT cursor_pos = txMousePos();
-
+        int mouse_button = txMouseButtons();
+        std::vector<RECT> screen_buttons;
+        fill_buttons_coords(screen_buttons, current_mode);
         if (current_mode == MAIN_MENU)
         {
 
+            if (txMouseButtons() == MOUSE_LEFT_CLICK)
+            {
+                POINT cursor_pos = txMousePos();
+                if (In(cursor_pos, screen_buttons[PLAY]))
+                {
+                    current_mode = BEFORE_START;
+                }
+
+                if (In(cursor_pos, screen_buttons[SETTINGS]))
+                {
+                    current_mode = SETTINGS_MENU;
+                }
+
+                if (In(cursor_pos, screen_buttons[QUIT]))
+                {
+                    break;
+                }
+            }
 
 
         }
+        txSleep(20);
     }
 
     txDeleteDC(title);
