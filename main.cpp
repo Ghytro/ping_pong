@@ -47,6 +47,14 @@ inline void draw_main_menu(HDC title, HDC start_button, HDC settings_button, HDC
 
 }
 
+inline void draw_before_game(HDC score_to_victory)
+{
+    int
+        stv_margin_left = (WIND_X_SIZE - 523) / 2,
+        stv_margin_top  = 100;
+    txBitBlt(txDC(), stv_margin_left, stv_margin_top, 523, 59, score_to_victory);
+}
+
 inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mode)
 {
     std::vector<RECT> temp;
@@ -71,7 +79,7 @@ inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mo
 
 inline void hide_HDC(HDC button)
 {
-    txBitBlt(txDC(), 0, 0, 0, 0, button);
+    txBitBlt(txDC(), 100, 100, 1, 1, button);
 }
 
 inline void free_HDC_mem(HDC pic, ...)
@@ -84,9 +92,23 @@ inline void free_HDC_mem(HDC pic, ...)
     }
 }
 
+std::vector<int> number_to_numerals(int number)
+{
+    std::vector<int> ans;
+    while (number <= 10)
+    {
+        ans.push_back(number % 10);
+        number /= 10;
+    }
+    ans.push_back(number);
+    std::reverse(ans.begin(), ans.end());
+    return ans;
+}
+
 int main()
 {
     txCreateWindow(WIND_X_SIZE, WIND_Y_SIZE);
+    txSetFillColor(TX_BLACK);
 
     HDC title = txLoadImage("Resources\\logo.bmp");
     if (!title)
@@ -130,6 +152,20 @@ int main()
         return 1;
     }
 
+    HDC score_to_victory = txLoadImage("Resources\\max_score.bmp");
+    if (!score_to_victory)
+    {
+        MessageBox(GetActiveWindow(), "Failed to load max_score.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
+
+    HDC goodbye = txLoadImage("Resources\\gbye.bmp");
+    if (!goodbye)
+    {
+        MessageBox(GetActiveWindow(), "Failed to load goodbye.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
+
     const HDC numerals[] = {
 
         txLoadImage("Resources\\0.bmp"),
@@ -155,8 +191,6 @@ int main()
             exit(1);
         }
 
-    draw_main_menu(title, start_button, settings_button, quit_button);
-
     game_mode current_mode = MAIN_MENU;
     std::vector<RECT> screen_buttons;
     while (!GetAsyncKeyState(VK_ESCAPE))
@@ -166,43 +200,46 @@ int main()
         if (current_mode == MAIN_MENU)
         {
             //need to nide all other buttons
+            draw_main_menu(title, start_button, settings_button, quit_button);
             if (txMouseButtons() == MOUSE_LEFT_CLICK)
             {
                 POINT cursor_pos = txMousePos();
                 if (In(cursor_pos, screen_buttons[PLAY]))
                 {
                     current_mode = BEFORE_START;
+                    txSleep(20);
                 }
 
                 if (In(cursor_pos, screen_buttons[SETTINGS]))
                 {
                     current_mode = SETTINGS_MENU;
+                    txSleep(20);
                 }
 
                 if (In(cursor_pos, screen_buttons[QUIT]))
                 {
+                    txSleep(20);
+
                     break;
                 }
             }
-
         }
 
         if (current_mode == BEFORE_START)
         {
-            //need to hide all other buttons
-            hide_HDC(title);
-            hide_HDC(start_button);
-            hide_HDC(settings_button);
-            hide_HDC(quit_button);
-
+            draw_before_game(score_to_victory);
 
         }
         txSleep(20);
+        txClear();
     }
 
-    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow);
+    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow, score_to_victory);
     for (int i = 0; i < 10; ++i)
         free_HDC_mem(numerals[i]);
+    txClear();
 
+    txBitBlt(txDC(), 0, 0, 800, 800, goodbye);
+    free_HDC_mem(goodbye);
     return 0;
 }
