@@ -69,9 +69,19 @@ inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mo
     buttons = temp;
 }
 
-inline void hide_button(HDC button)
+inline void hide_HDC(HDC button)
 {
     txBitBlt(txDC(), 0, 0, 0, 0, button);
+}
+
+inline void free_HDC_mem(HDC pic, ...)
+{
+    HDC *it = &pic;
+    while (*it)
+    {
+        txDeleteDC(*it);
+        ++it;
+    }
 }
 
 int main()
@@ -106,17 +116,56 @@ int main()
         return 1;
     }
 
+    HDC left_arrow = txLoadImage("Resources\\left_arrow.bmp");
+    if (!left_arrow)
+    {
+        MessageBox(GetActiveWindow(), "Failed to load left_arrow.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
+
+    HDC right_arrow = txLoadImage("Resources\\right_arrow.bmp");
+    if (!left_arrow)
+    {
+        MessageBox(GetActiveWindow(), "Failed to load right_arrow.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
+
+    const HDC numerals[] = {
+
+        txLoadImage("Resources\\0.bmp"),
+        txLoadImage("Resources\\1.bmp"),
+        txLoadImage("Resources\\2.bmp"),
+        txLoadImage("Resources\\3.bmp"),
+        txLoadImage("Resources\\4.bmp"),
+        txLoadImage("Resources\\5.bmp"),
+        txLoadImage("Resources\\6.bmp"),
+        txLoadImage("Resources\\7.bmp"),
+        txLoadImage("Resources\\8.bmp"),
+        txLoadImage("Resources\\9.bmp"),
+
+    };
+
+    for (int i = 0; i < 10; ++i)
+        if (!numerals[i])
+        {
+            std::string error_cause = "Failed to load ";
+            error_cause += std::to_string(i);
+            error_cause += ".bmp";
+            MessageBox(GetActiveWindow(), error_cause.c_str(), "Fatal error", MB_ICONERROR);
+            exit(1);
+        }
+
     draw_main_menu(title, start_button, settings_button, quit_button);
 
     game_mode current_mode = MAIN_MENU;
+    std::vector<RECT> screen_buttons;
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         int mouse_button = txMouseButtons();
-        std::vector<RECT> screen_buttons;
         fill_buttons_coords(screen_buttons, current_mode);
         if (current_mode == MAIN_MENU)
         {
-
+            //need to nide all other buttons
             if (txMouseButtons() == MOUSE_LEFT_CLICK)
             {
                 POINT cursor_pos = txMousePos();
@@ -136,13 +185,24 @@ int main()
                 }
             }
 
+        }
+
+        if (current_mode == BEFORE_START)
+        {
+            //need to hide all other buttons
+            hide_HDC(title);
+            hide_HDC(start_button);
+            hide_HDC(settings_button);
+            hide_HDC(quit_button);
+
 
         }
         txSleep(20);
     }
 
-    txDeleteDC(title);
-    txDeleteDC(start_button);
-    txDeleteDC(settings_button);
-    txDeleteDC(quit_button);
+    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow);
+    for (int i = 0; i < 10; ++i)
+        free_HDC_mem(numerals[i]);
+
+    return 0;
 }
