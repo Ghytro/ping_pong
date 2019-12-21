@@ -134,70 +134,70 @@ int main()
     HDC title = txLoadImage("Resources\\logo.bmp");
     if (!title)
     {
-        MessageBox(GetActiveWindow(), "Failed to load logo.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load logo.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC start_button = txLoadImage("Resources\\play_button.bmp");
     if (!start_button)
     {
-        MessageBox(GetActiveWindow(), "Failed to load play_button.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load play_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC settings_button = txLoadImage("Resources\\settings_button.bmp");
     if (!settings_button)
     {
-        MessageBox(GetActiveWindow(), "Failed to load settings_button.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load settings_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC quit_button = txLoadImage("Resources\\quit_button.bmp");
     if (!quit_button)
     {
-        MessageBox(GetActiveWindow(), "Failed to load quit_button.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load quit_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC left_arrow = txLoadImage("Resources\\left_arrow.bmp");
     if (!left_arrow)
     {
-        MessageBox(GetActiveWindow(), "Failed to load left_arrow.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load left_arrow.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC right_arrow = txLoadImage("Resources\\right_arrow.bmp");
     if (!left_arrow)
     {
-        MessageBox(GetActiveWindow(), "Failed to load right_arrow.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load right_arrow.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC score_to_victory = txLoadImage("Resources\\max_score.bmp");
     if (!score_to_victory)
     {
-        MessageBox(GetActiveWindow(), "Failed to load max_score.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load max_score.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC goodbye = txLoadImage("Resources\\gbye.bmp");
     if (!goodbye)
     {
-        MessageBox(GetActiveWindow(), "Failed to load goodbye.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load goodbye.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC inc_stv = txLoadImage("Resources\\inc_stv.bmp");
     if (!inc_stv)
     {
-        MessageBox(GetActiveWindow(), "Failed to load inc_stv.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load inc_stv.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
     HDC dec_stv = txLoadImage("Resources\\dec_stv.bmp");
     if (!dec_stv)
     {
-        MessageBox(GetActiveWindow(), "Failed to load dec_stv.bmp", "Fatal error", MB_ICONERROR);
+        txMessageBox("Failed to load dec_stv.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
@@ -220,7 +220,7 @@ int main()
         if (!numerals[i])
         {
             std::string error_cause = "Failed to load " + std::to_string(i) + ".bmp";
-            MessageBox(GetActiveWindow(), error_cause.c_str(), "Fatal error", MB_ICONERROR);
+            txMessageBox(error_cause.c_str(), "Fatal error", MB_ICONERROR);
             return 1;
         }
     }
