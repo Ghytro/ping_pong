@@ -1,3 +1,4 @@
+
 #include "TXLib.h"
 #include <vector>
 #include <iostream>
@@ -8,6 +9,10 @@
 #define MOUSE_LEFT_CLICK 1
 #define MOUSE_RIGHT_CLICK 2
 #define DEFAULT_START_SCORE 10
+#define EASY_DIFF 0
+#define NORMAL_DIFF 1
+#define HARD_DIFF 2
+#define EXPERT_DIFF 3
 
 enum game_mode
 {
@@ -29,6 +34,8 @@ enum before_start_button
 {
     DECREASE_SCORE,
     INCREASE_SCORE,
+    DECREASE_DIFF,
+    INCREASE_DIFF,
 };
 
 inline void number_to_numerals(int number, std::vector<int> &numerals)
@@ -68,11 +75,11 @@ inline void draw_main_menu(HDC title, HDC start_button, HDC settings_button, HDC
 
 }
 
-inline void draw_before_game(HDC score_to_victory, HDC dec_stv, HDC inc_stv, HDC *numerals, int stv, std::vector<RECT> &buttons)
+inline void draw_before_game(HDC score_to_victory, HDC dec_stv, HDC inc_stv, HDC *numerals, HDC difficulty, HDC *difficulties, int stv, int current_difficulty, std::vector<RECT> &buttons)
 {
     int
         stv_margin_left = (WIND_X_SIZE - 523) / 2,
-        stv_margin_top  = 100;
+        stv_margin_top  = 50;
     txBitBlt(txDC(), stv_margin_left, stv_margin_top, 523, 59, score_to_victory);
 
     std::vector<int> score_numerals;
@@ -80,16 +87,58 @@ inline void draw_before_game(HDC score_to_victory, HDC dec_stv, HDC inc_stv, HDC
     int number_width = 65 * (score_numerals.size() + 1);
     int score_left_margin = (WIND_X_SIZE - number_width - 65) / 2;
     int number_margin_stv = 80;
+
     //refreshing button sizes here because of the temporary size of the number
     std::vector<RECT> temp;
     txBitBlt(txDC(), score_left_margin, stv_margin_top + number_margin_stv + 15, 50, 50, dec_stv);
     temp.push_back({score_left_margin, stv_margin_top + number_margin_stv + 15, score_left_margin + 50, stv_margin_top + number_margin_stv + 50});
+
     for (size_t i = 0; i < score_numerals.size(); ++i)
-    {
         txBitBlt(txDC(), score_left_margin + (i + 1)*65, stv_margin_top + number_margin_stv, 65, 80, numerals[score_numerals[i]]);
-    }
+
     txBitBlt(txDC(), score_left_margin + number_width + 10, stv_margin_top + number_margin_stv + 15, 50, 50, inc_stv);
     temp.push_back({score_left_margin + number_width + 10, stv_margin_top + number_margin_stv + 15, score_left_margin + number_width + 50, stv_margin_top + number_margin_stv + 50});
+
+    int
+        diff_margin_left = (WIND_X_SIZE - 347) / 2,
+        diff_margin_top  = stv_margin_top + number_margin_stv + 125;
+    txBitBlt(txDC(), diff_margin_left, diff_margin_top, 347, 65, difficulty);
+    int diff_select_width;
+
+    switch(current_difficulty)
+    {
+
+    case 0:
+        diff_select_width = 136 + 2*50;
+        break;
+
+    case 1:
+        diff_select_width = 202 + 2*50;
+        break;
+
+    case 2:
+        diff_select_width = 138 + 2*50;
+        break;
+
+    case 3:
+        diff_select_width = 202 + 2*50;
+        break;
+
+    default:
+        break;
+
+    }
+
+
+    int diff_select_margin_left = (WIND_X_SIZE - diff_select_width - 50) / 2;
+    txBitBlt(txDC(), diff_select_margin_left, diff_margin_top + 100, 50, 50, dec_stv);
+    temp.push_back({diff_select_margin_left, diff_margin_top + 100, diff_select_margin_left + 50, diff_margin_top + 150});
+
+    txBitBlt(txDC(), diff_select_margin_left + 80, diff_margin_top + 100, diff_select_width - 2*50, 65, difficulties[current_difficulty]);
+
+    txBitBlt(txDC(), diff_select_margin_left + diff_select_width, diff_margin_top + 100, 50, 50, inc_stv);
+    temp.push_back({diff_select_margin_left + diff_select_width, diff_margin_top + 100, diff_select_margin_left + diff_select_width + 50, diff_margin_top + 150});
+
     buttons = temp;
 }
 
@@ -201,6 +250,14 @@ int main()
         return 1;
     }
 
+    HDC difficulty = txLoadImage("Resources\\difficulty.bmp");
+    if (!difficulty)
+    {
+        txMessageBox("Failed to load difficulty.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
+
+
     HDC numerals[] =
     {
         txLoadImage("Resources\\0.bmp"),
@@ -215,6 +272,14 @@ int main()
         txLoadImage("Resources\\9.bmp"),
     };
 
+    HDC difficulties[] =
+    {
+        txLoadImage("Resources\\easy_dif.bmp"),
+        txLoadImage("Resources\\normal_dif.bmp"),
+        txLoadImage("Resources\\hard_dif.bmp"),
+        txLoadImage("Resources\\expert_dif.bmp"),
+    };
+
     for (int i = 0; i < 10; ++i)
     {
         if (!numerals[i])
@@ -225,10 +290,43 @@ int main()
         }
     }
 
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!difficulties[i])
+        {
+            std::string error_cause = "Failed to load ";
+            switch(i)
+            {
+            case 0:
+                error_cause += "easy_dif.bmp";
+                break;
+
+            case 1:
+                error_cause += "normal_dif.bmp";
+                break;
+
+            case 2:
+                error_cause += "hard_dif.bmp";
+                break;
+
+            case 3:
+                error_cause += "expert_dif.bmp";
+                break;
+
+            default:
+                break;
+
+            }
+            txMessageBox(error_cause.c_str(), "Fatal error", MB_ICONERROR);
+            return 1;
+        }
+    }
+
 
     game_mode current_mode = MAIN_MENU;
     std::vector<RECT> screen_buttons;
     int victory_score = DEFAULT_START_SCORE;
+    int current_difficulty = NORMAL_DIFF;
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         int mouse_button = txMouseButtons();
@@ -263,7 +361,7 @@ int main()
 
         if (current_mode == BEFORE_START)
         {
-            draw_before_game(score_to_victory, dec_stv, inc_stv, numerals, victory_score, screen_buttons);
+            draw_before_game(score_to_victory, dec_stv, inc_stv, numerals, difficulty, difficulties, victory_score, current_difficulty, screen_buttons);
             if (txMouseButtons() == MOUSE_LEFT_CLICK)
             {
                 POINT cursor_pos = txMousePos();
@@ -279,6 +377,17 @@ int main()
                     txSleep(100);
                 }
 
+                if (In(cursor_pos, screen_buttons[DECREASE_DIFF]) && current_difficulty > 0)
+                {
+                    --current_difficulty;
+                    txSleep(100);
+                }
+
+                if (In(cursor_pos, screen_buttons[INCREASE_DIFF]) && current_difficulty < 3)
+                {
+                    ++current_difficulty;
+                    txSleep(100);
+                }
 
             }
         }
@@ -286,9 +395,15 @@ int main()
         txClear();
     }
 
-    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow, score_to_victory, inc_stv, dec_stv);
+    ///clearing HDC memory
+    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow, score_to_victory, inc_stv, dec_stv, difficulty);
+
     for (int i = 0; i < 10; ++i)
         free_HDC_mem(numerals[i]);
+
+    for (int i = 0; i < 4; ++i)
+        free_HDC_mem(difficulties[i]);
+
     txClear();
 
     txBitBlt(txDC(), 0, 0, 800, 800, goodbye);
