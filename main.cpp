@@ -16,6 +16,9 @@
 #define HARD_DIFF 2
 #define EXPERT_DIFF 3
 #define PI acos(-1)
+#define left_border first
+#define right_border second
+#define HDC_LOAD_SLEEP_TIME 20
 
 enum game_mode
 {
@@ -192,9 +195,8 @@ inline void draw_countdown(HDC *numerals)
     txClear();
 }
 
-inline void play_game(int difficulty, int stv, game_mode &current_mode)
+inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_mode &current_mode, HDC* numerals, HDC score_divider)
 {
-    std::pair<int, int> score(0, 0);
     const int racket_w = 10;
     int
         game_wind_x_sz,
@@ -208,13 +210,13 @@ inline void play_game(int difficulty, int stv, game_mode &current_mode)
     switch (difficulty)
     {
     case 0:
-        game_wind_x_sz    = 400;
+        game_wind_x_sz    = 600;
         game_wind_y_sz    = 300;
         racket_l          = 65;
         ball_speed_x      = 10;
         ball_speed_y      = std::rand() % 12 - 6;
         ball_size         = 20;
-        ball_y_pos        = std::rand() % 300 + 150;
+        ball_y_pos        = std::rand() % 200 + 160;
         break;
 
     case 1:
@@ -224,7 +226,7 @@ inline void play_game(int difficulty, int stv, game_mode &current_mode)
         ball_speed_x      = 15;
         ball_speed_y      = std::rand() % 18 - 9;
         ball_size         = 15;
-        ball_y_pos        = std::rand() % 400;
+        ball_y_pos        = std::rand() % 300 + 160;
         break;
 
 
@@ -235,17 +237,17 @@ inline void play_game(int difficulty, int stv, game_mode &current_mode)
         ball_speed_x      = 20;
         ball_speed_y      = std::rand() % 24 - 12;
         ball_size         = 10;
-        ball_y_pos        = std::rand() % 600;
+        ball_y_pos        = std::rand() % 400 + 200;
         break;
 
     case 3:
         game_wind_x_sz    = 800;
         game_wind_y_sz    = 600;
         racket_l          = 25;
-        ball_speed_x      = 50;
+        ball_speed_x      = 30;
         ball_speed_y      = std::rand() % 60 - 30;
         ball_size         = 5;
-        ball_y_pos        = std::rand() % 600;
+        ball_y_pos        = std::rand() % 400 + 200;
         break;
 
     default:
@@ -263,6 +265,7 @@ inline void play_game(int difficulty, int stv, game_mode &current_mode)
     RECT screen_frame = {game_window_margin_x, game_window_margin_top, game_window_margin_x + game_wind_x_sz, game_window_margin_top + game_wind_y_sz};
     txSetColor(TX_WHITE);
 
+    txBegin();
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         draw_frame(screen_frame, TX_WHITE, frame_thickness);
@@ -274,11 +277,71 @@ inline void play_game(int difficulty, int stv, game_mode &current_mode)
         if (cursor_pos.y + racket_l > screen_frame.bottom)
             cursor_pos.y = screen_frame.bottom - racket_l;
 
-        txRectangle(ball_x_pos - ball_size, ball_y_pos - ball_size, ball_x_pos + ball_size, ball_y_pos + ball_size); ///ball
-        txRectangle(game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w, cursor_pos.y - racket_l, game_window_margin_x + game_wind_x_sz - racket_margin_x + racket_w, cursor_pos.y + racket_l); ///player's rocket
+        txSetFillColor(TX_WHITE);
 
-        if (ball_x_pos + ball_size >= screen_frame.right || ball_x_pos - ball_size <= screen_frame.left)
+        txRectangle(ball_x_pos - ball_size, ball_y_pos - ball_size, ball_x_pos + ball_size, ball_y_pos + ball_size); ///ball
+        txFloodFill(ball_x_pos, ball_y_pos, TX_WHITE);
+
+        txRectangle(game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w, cursor_pos.y - racket_l, game_window_margin_x + game_wind_x_sz - racket_margin_x + racket_w, cursor_pos.y + racket_l); ///player's rocket
+        txFloodFill(game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w, cursor_pos.y - racket_l + 1, TX_WHITE);
+
+        if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w && ball_y_pos + ball_size >= cursor_pos.y - racket_l && ball_y_pos - ball_size <= cursor_pos.y + racket_l || ball_x_pos - ball_size <= game_window_margin_x)
+        {
             ball_speed_x *= -1;
+            std::vector<double> y_speed_diff_koef = {0.01, 0.1, 0.3, 0.5};
+            if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w)
+                ball_speed_y = (ball_y_pos - cursor_pos.y)*y_speed_diff_koef[difficulty];
+        }
+
+        if (ball_x_pos + ball_size >= screen_frame.right)
+        {
+            score.left_border++;
+
+            std::vector<int>
+                left_score_numerals,
+                right_score_numerals;
+
+            number_to_numerals(score.left_border, left_score_numerals);
+            number_to_numerals(score.right_border, right_score_numerals);
+
+            int score_width       = left_score_numerals.size() * 65 + right_score_numerals.size() * 65 + 25;
+            int score_margin_left = (WIND_X_SIZE - score_width) / 2;
+
+            for (size_t i = 0; i < left_score_numerals.size(); ++i)
+                txBitBlt(txDC(), score_margin_left + i*65, (screen_frame.bottom - screen_frame.top - 65) / 2, 65, 80, numerals[left_score_numerals[i]]);
+
+            txBitBlt(txDC(), score_margin_left + left_score_numerals.size() * 65, (screen_frame.bottom - screen_frame.top - 110) / 2, 25, 110, score_divider);
+
+            for (size_t i = 0; i < right_score_numerals.size(); ++i)
+                txBitBlt(txDC(), score_margin_left + left_score_numerals.size() * 65 + 25 + i*65, (screen_frame.bottom - screen_frame.top - 65) / 2, 65, 80, numerals[right_score_numerals[i]]);
+
+            txSleep(2000);
+            ball_x_pos = WIND_X_SIZE / 2;
+            switch (difficulty)
+            {
+            case 0:
+                ball_y_pos = std::rand() % 200 + 160;
+                break;
+
+            case 1:
+                ball_y_pos = std::rand() % 300 + 160;
+                break;
+
+
+            case 2:
+                ball_y_pos = std::rand() % 400 + 200;
+                break;
+
+            case 3:
+                ball_y_pos = std::rand() % 400 + 200;
+                break;
+
+            default:
+                break;
+
+            }
+            continue;
+        }
 
         if (ball_y_pos + ball_size >= screen_frame.bottom || ball_y_pos - ball_size <= screen_frame.top)
             ball_speed_y *= -1;
@@ -286,9 +349,12 @@ inline void play_game(int difficulty, int stv, game_mode &current_mode)
         ball_x_pos += ball_speed_x;
         ball_y_pos += ball_speed_y;
         txSleep(20);
+        txSetFillColor(TX_BLACK);
         txClear();
     }
+    txEnd();
     current_mode = MAIN_MENU;
+    txSleep(200);
 }
 
 inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mode, std::vector<int> left_button_coord = {}, std::vector<int> right_button_coord = {})
@@ -329,120 +395,169 @@ int main()
     std::srand(std::time(NULL));
     txCreateWindow(WIND_X_SIZE, WIND_Y_SIZE);
     txSetFillColor(TX_BLACK);
+    printf("Loading...\nPlease wait...\n");
 
+    txBegin();
     HDC title = txLoadImage("Resources\\logo.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!title)
     {
         txMessageBox("Failed to load logo.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC start_button = txLoadImage("Resources\\play_button.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!start_button)
     {
         txMessageBox("Failed to load play_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC settings_button = txLoadImage("Resources\\settings_button.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!settings_button)
     {
         txMessageBox("Failed to load settings_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC quit_button = txLoadImage("Resources\\quit_button.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!quit_button)
     {
         txMessageBox("Failed to load quit_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC left_arrow = txLoadImage("Resources\\left_arrow.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!left_arrow)
     {
         txMessageBox("Failed to load left_arrow.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC right_arrow = txLoadImage("Resources\\right_arrow.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!left_arrow)
     {
         txMessageBox("Failed to load right_arrow.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC score_to_victory = txLoadImage("Resources\\max_score.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!score_to_victory)
     {
         txMessageBox("Failed to load max_score.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC goodbye = txLoadImage("Resources\\gbye.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!goodbye)
     {
         txMessageBox("Failed to load goodbye.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC inc_stv = txLoadImage("Resources\\inc_stv.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!inc_stv)
     {
         txMessageBox("Failed to load inc_stv.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC dec_stv = txLoadImage("Resources\\dec_stv.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!dec_stv)
     {
         txMessageBox("Failed to load dec_stv.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC difficulty = txLoadImage("Resources\\difficulty.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!difficulty)
     {
         txMessageBox("Failed to load difficulty.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC start_game = txLoadImage("Resources\\start_game.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!start_game)
     {
         txMessageBox("Failed to load start_game.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
     HDC back_button = txLoadImage("Resources\\back_button.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
     if (!back_button)
     {
         txMessageBox("Failed to load back_button.bmp", "Fatal error", MB_ICONERROR);
         return 1;
     }
 
+    txSleep(HDC_LOAD_SLEEP_TIME);
 
-    HDC numerals[] =
+    HDC score_divider = txLoadImage("Resources\\score_divider.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
+    if (!score_divider)
     {
-        txLoadImage("Resources\\0.bmp"),
-        txLoadImage("Resources\\1.bmp"),
-        txLoadImage("Resources\\2.bmp"),
-        txLoadImage("Resources\\3.bmp"),
-        txLoadImage("Resources\\4.bmp"),
-        txLoadImage("Resources\\5.bmp"),
-        txLoadImage("Resources\\6.bmp"),
-        txLoadImage("Resources\\7.bmp"),
-        txLoadImage("Resources\\8.bmp"),
-        txLoadImage("Resources\\9.bmp"),
-    };
+        txMessageBox("Failed to load score_divider.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
 
-    HDC difficulties[] =
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
+    HDC numerals[10];
+    for (int i = 0; i < 10; ++i)
     {
-        txLoadImage("Resources\\easy_dif.bmp"),
-        txLoadImage("Resources\\normal_dif.bmp"),
-        txLoadImage("Resources\\hard_dif.bmp"),
-        txLoadImage("Resources\\expert_dif.bmp"),
-    };
+        std::string file_name = "Resources\\";
+        file_name += std::to_string(i);
+        file_name += ".bmp";
+        numerals[i] = txLoadImage(file_name.c_str());
+        txSleep(HDC_LOAD_SLEEP_TIME);
+    }
+
+    txSleep(HDC_LOAD_SLEEP_TIME);
+
+    HDC difficulties[4];
+    for (int i = 0; i < 4; ++i)
+    {
+        std::vector<std::string> dif_names = {"easy_dif.bmp", "normal_dif.bmp", "hard_dif.bmp", "expert_dif.bmp"};
+        std::string file_name = "Resources\\" + dif_names[i];
+        difficulties[i] = txLoadImage(file_name.c_str());
+        txSleep(HDC_LOAD_SLEEP_TIME);
+    }
 
     for (int i = 0; i < 10; ++i)
     {
@@ -485,20 +600,24 @@ int main()
             return 1;
         }
     }
-
+    txEnd();
+    system("cls");
 
     game_mode current_mode = MAIN_MENU;
     std::vector<RECT> screen_buttons;
+    std::pair<int, int> game_score(0, 0);
     int victory_score = DEFAULT_START_SCORE;
     int current_difficulty = NORMAL_DIFF;
+    txBegin();
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
+        game_score = {0, 0};
         int mouse_button = txMouseButtons();
 
         if (current_mode == PLAYING)
         {
             draw_countdown(numerals);
-            play_game(current_difficulty, victory_score, current_mode);
+            play_game(current_difficulty, victory_score, game_score, current_mode, numerals, score_divider);
         }
 
         if (current_mode == MAIN_MENU)
@@ -572,9 +691,9 @@ int main()
         txSleep(20);
         txClear();
     }
-
+    txEnd();
     ///clearing HDC memory
-    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow, score_to_victory, inc_stv, dec_stv, difficulty, start_game, back_button);
+    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow, score_to_victory, inc_stv, dec_stv, difficulty, start_game, back_button, score_divider);
 
     for (int i = 0; i < 10; ++i)
         free_HDC_mem(numerals[i]);
