@@ -413,6 +413,7 @@ int main()
     std::srand(std::time(NULL));
     txCreateWindow(WIND_X_SIZE, WIND_Y_SIZE);
     txSetFillColor(TX_BLACK);
+    txTextCursor (false);
     printf("Loading...\nPlease wait...\n");
 
     txBegin();
@@ -626,21 +627,23 @@ int main()
     std::pair<int, int> game_score(0, 0);
     int victory_score = DEFAULT_START_SCORE;
     int current_difficulty = NORMAL_DIFF;
+    bool is_quit = false;
     txBegin();
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         game_score = {0, 0};
         int mouse_button = txMouseButtons();
 
-        if (current_mode == PLAYING)
+        switch (current_mode)
+        {
+        case PLAYING:
         {
             draw_countdown(numerals);
             play_game(current_difficulty, victory_score, game_score, current_mode, numerals, score_divider);
+            break;
         }
-
-        if (current_mode == MAIN_MENU)
+        case MAIN_MENU:
         {
-            //need to nide all other buttons
             fill_buttons_coords(screen_buttons, current_mode);
             draw_main_menu(title, start_button, settings_button, quit_button);
             if (txMouseButtons() == MOUSE_LEFT_CLICK)
@@ -658,13 +661,12 @@ int main()
 
                 if (In(cursor_pos, screen_buttons[QUIT]))
                 {
-                    txSleep(20);
-                    break;
+                    is_quit = true;
                 }
             }
+            break;
         }
-
-        if (current_mode == BEFORE_START)
+        case BEFORE_START:
         {
             draw_before_game(score_to_victory, dec_stv, inc_stv, numerals, difficulty, difficulties, start_game, back_button, victory_score, current_difficulty, screen_buttons);
             if (txMouseButtons() == MOUSE_LEFT_CLICK)
@@ -704,7 +706,12 @@ int main()
                     current_mode = MAIN_MENU;
                 }
             }
+            break;
         }
+        }
+
+        if (is_quit)
+            break;
 
         txSleep(framerate_to_txsleep(FPS));
         txClear();
