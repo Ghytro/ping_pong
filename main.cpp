@@ -210,7 +210,8 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_x,
         ball_speed_y,
         ball_size,
-        ball_y_pos;
+        ball_y_pos,
+        opponent_max_speed;
 
     switch (difficulty)
     {
@@ -222,6 +223,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 12 - 6;
         ball_size         = 20;
         ball_y_pos        = std::rand() % 200 + 160;
+        opponent_max_speed= std::rand() % 12 - 6;
         break;
 
     case 1:
@@ -232,6 +234,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 18 - 9;
         ball_size         = 15;
         ball_y_pos        = std::rand() % 300 + 160;
+        opponent_max_speed= std::rand() % 18 - 9;
         break;
 
 
@@ -243,6 +246,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 24 - 12;
         ball_size         = 10;
         ball_y_pos        = std::rand() % 400 + 200;
+        opponent_max_speed= std::rand() % 24 - 12;
         break;
 
     case 3:
@@ -253,6 +257,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 60 - 30;
         ball_size         = 5;
         ball_y_pos        = std::rand() % 400 + 200;
+        opponent_max_speed= std::rand() % 60 - 30;
         break;
 
     default:
@@ -272,6 +277,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
     txSetColor(TX_WHITE);
 
     txBegin();
+    clock_t opponent_max_speed_change_timer = std::clock();
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         draw_frame(screen_frame, TX_WHITE, frame_thickness);
@@ -315,9 +321,61 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
                 ball_speed_y = (ball_y_pos - cursor_pos.y)*y_speed_diff_koef[difficulty];
         }
 
+        ///change score if ball hits the wall
         if (ball_x_pos + ball_size >= screen_frame.right)
         {
-            score.left_border++;
+            ++score.left_border;
+
+            std::vector<int>
+                left_score_numerals,
+                right_score_numerals;
+
+            number_to_numerals(score.left_border, left_score_numerals);
+            number_to_numerals(score.right_border, right_score_numerals);
+
+            int score_width       = left_score_numerals.size() * 65 + right_score_numerals.size() * 65 + 25;
+            int score_margin_left = (WIND_X_SIZE - score_width) / 2;
+
+            for (size_t i = 0; i < left_score_numerals.size(); ++i)
+                txBitBlt(txDC(), score_margin_left + i*65, (screen_frame.bottom - screen_frame.top - 65) / 2, 65, 80, numerals[left_score_numerals[i]]);
+
+            txBitBlt(txDC(), score_margin_left + left_score_numerals.size() * 65, (screen_frame.bottom - screen_frame.top - 110) / 2, 25, 110, score_divider);
+
+            for (size_t i = 0; i < right_score_numerals.size(); ++i)
+                txBitBlt(txDC(), score_margin_left + left_score_numerals.size() * 65 + 25 + i*65, (screen_frame.bottom - screen_frame.top - 65) / 2, 65, 80, numerals[right_score_numerals[i]]);
+
+            txSleep(2000);
+            ball_x_pos = WIND_X_SIZE / 2;
+            switch (difficulty)
+            {
+            case 0:
+                ball_y_pos = std::rand() % 200 + 160;
+                break;
+
+            case 1:
+                ball_y_pos = std::rand() % 300 + 160;
+                break;
+
+
+            case 2:
+                ball_y_pos = std::rand() % 400 + 200;
+                break;
+
+            case 3:
+                ball_y_pos = std::rand() % 400 + 200;
+                break;
+
+            default:
+                break;
+
+            }
+            continue;
+        }
+
+        if (ball_x_pos - ball_size <= screen_frame.left)
+        {
+            ///the same way change the score
+            ++score.right_border;
 
             std::vector<int>
                 left_score_numerals,
@@ -368,8 +426,35 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         if (ball_y_pos + ball_size >= screen_frame.bottom || ball_y_pos - ball_size <= screen_frame.top)
             ball_speed_y *= -1;
 
-        ///insert AI logic here
-        opponent_cursor_y_pos = ball_y_pos; ///the most dumb ping pong AI that never loses
+        ///AI logic
+        if (static_cast<double>(std::clock() - opponent_max_speed_change_timer) /
+            static_cast<double>(CLOCKS_PER_SEC)                                     >= 1.0)
+        {
+            switch (difficulty)
+            {
+            case 0:
+                opponent_max_speed= std::rand() % 12 - 6;
+                break;
+
+            case 1:
+                opponent_max_speed= std::rand() % 18 - 9;
+                break;
+
+
+            case 2:
+                opponent_max_speed= std::rand() % 24 - 12;
+                break;
+
+            case 3:
+                opponent_max_speed= std::rand() % 60 - 30;
+                break;
+
+            default:
+                break;
+            }
+            opponent_max_speed_change_timer = std::clock();
+        }
+        opponent_cursor_y_pos += (1 - 2*(ball_y_pos < opponent_cursor_y_pos)) * (rand() % opponent_max_speed);
 
         ball_x_pos += ball_speed_x;
         ball_y_pos += ball_speed_y;
