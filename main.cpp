@@ -1,4 +1,3 @@
-
 #include "txlib.h"
 #include <vector>
 #include <iostream>
@@ -212,7 +211,6 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y,
         ball_size,
         ball_y_pos;
-    std::string neural_file_dir = "neural_";
 
     switch (difficulty)
     {
@@ -224,7 +222,6 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 12 - 6;
         ball_size         = 20;
         ball_y_pos        = std::rand() % 200 + 160;
-        neural_file_dir  += "easy.txt";
         break;
 
     case 1:
@@ -235,7 +232,6 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 18 - 9;
         ball_size         = 15;
         ball_y_pos        = std::rand() % 300 + 160;
-        neural_file_dir  += "normal.txt";
         break;
 
 
@@ -247,7 +243,6 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 24 - 12;
         ball_size         = 10;
         ball_y_pos        = std::rand() % 400 + 200;
-        neural_file_dir  += "hard.txt";
         break;
 
     case 3:
@@ -258,7 +253,6 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 60 - 30;
         ball_size         = 5;
         ball_y_pos        = std::rand() % 400 + 200;
-        neural_file_dir  += "expert.txt";
         break;
 
     default:
@@ -271,6 +265,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
     int game_window_margin_top  = 150;
     int frame_thickness         = 2;
     int racket_margin_x         = 20;
+    int opponent_cursor_y_pos   = (WIND_Y_SIZE - game_wind_y_sz) / 2;
     ball_x_pos += game_window_margin_x;
 
     RECT screen_frame = {game_window_margin_x, game_window_margin_top, game_window_margin_x + game_wind_x_sz, game_window_margin_top + game_wind_y_sz};
@@ -287,25 +282,35 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
         if (cursor_pos.y + racket_l > screen_frame.bottom)
             cursor_pos.y = screen_frame.bottom - racket_l;
-        //fout below is for the neural training
-        //fout << double(cursor_pos.y - game_window_margin_top) / (double)game_wind_y_sz << " ";
+
+        if (opponent_cursor_y_pos - racket_l < screen_frame.top)
+            opponent_cursor_y_pos = screen_frame.top + racket_l;
+
+        if (opponent_cursor_y_pos + racket_l > screen_frame.bottom)
+            opponent_cursor_y_pos = screen_frame.bottom - racket_l;
 
         txSetFillColor(TX_WHITE);
 
         txRectangle(ball_x_pos - ball_size, ball_y_pos - ball_size, ball_x_pos + ball_size, ball_y_pos + ball_size); ///ball
-        //fout below is for the neural training
-        //fout << ((double)game_wind_x_sz - double(ball_x_pos - game_window_margin_x)) / (double)game_wind_x_sz << " " << double(ball_y_pos - game_window_margin_top) / (double)game_wind_y_sz << " ";
+
         txFloodFill(ball_x_pos, ball_y_pos, TX_WHITE);
 
         txRectangle(game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w, cursor_pos.y - racket_l, game_window_margin_x + game_wind_x_sz - racket_margin_x + racket_w, cursor_pos.y + racket_l); ///player's rocket
         txFloodFill(game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w, cursor_pos.y - racket_l + 1, TX_WHITE);
-        txRectangle(game_window_margin_x + racket_margin_x - racket_w, ball_y_pos - racket_l, game_window_margin_x + racket_margin_x + racket_w, ball_y_pos + racket_l);
+
+        txRectangle(game_window_margin_x + racket_margin_x - racket_w, opponent_cursor_y_pos - racket_l, game_window_margin_x + racket_margin_x + racket_w, opponent_cursor_y_pos + racket_l); ///opponent's rocket
         txFloodFill(game_window_margin_x + racket_margin_x - racket_w + 1, ball_y_pos - racket_l + 1, TX_WHITE);
 
-        if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w && ball_y_pos + ball_size >= cursor_pos.y - racket_l && ball_y_pos - ball_size <= cursor_pos.y + racket_l || ball_x_pos - ball_size <= game_window_margin_x)
+        if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w && ///player's rocket hits ball
+            ball_y_pos + ball_size >= cursor_pos.y - racket_l &&
+            ball_y_pos - ball_size <= cursor_pos.y + racket_l ||
+
+            ball_x_pos - ball_size <= game_window_margin_x + racket_margin_x + racket_w && ///opponent's rocket hits ball
+            ball_y_pos + ball_size >= opponent_cursor_y_pos - racket_l &&
+            ball_y_pos - ball_size <= opponent_cursor_y_pos + racket_l)
         {
             ball_speed_x *= -1;
-            std::vector<double> y_speed_diff_koef = {0.1, 0.1, 0.3, 0.5};
+            double y_speed_diff_koef[] = {0.1, 0.1, 0.3, 0.5};
             if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w)
                 ball_speed_y = (ball_y_pos - cursor_pos.y)*y_speed_diff_koef[difficulty];
         }
@@ -362,6 +367,9 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
         if (ball_y_pos + ball_size >= screen_frame.bottom || ball_y_pos - ball_size <= screen_frame.top)
             ball_speed_y *= -1;
+
+        ///insert AI logic here
+        opponent_cursor_y_pos = ball_y_pos; ///the most dumb ping pong AI that never loses
 
         ball_x_pos += ball_speed_x;
         ball_y_pos += ball_speed_y;
