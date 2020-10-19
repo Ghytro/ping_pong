@@ -15,6 +15,7 @@
 #define NORMAL_DIFF 1
 #define HARD_DIFF 2
 #define EXPERT_DIFF 3
+#define OPPONENT_MAX_SPEED_ASSIGNMENT_COOLDOWN 0.5
 #define PI acos(-1)
 #define left_border first
 #define right_border second
@@ -223,7 +224,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 12 - 6;
         ball_size         = 20;
         ball_y_pos        = std::rand() % 200 + 160;
-        opponent_max_speed= std::rand() % 12 - 6;
+        opponent_max_speed= std::rand() % 5 + 1;
         break;
 
     case 1:
@@ -234,7 +235,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 18 - 9;
         ball_size         = 15;
         ball_y_pos        = std::rand() % 300 + 160;
-        opponent_max_speed= std::rand() % 18 - 9;
+        opponent_max_speed= std::rand() % 5 + 3;
         break;
 
 
@@ -246,7 +247,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 24 - 12;
         ball_size         = 10;
         ball_y_pos        = std::rand() % 400 + 200;
-        opponent_max_speed= std::rand() % 24 - 12;
+        opponent_max_speed= std::rand() % 6 + 5;
         break;
 
     case 3:
@@ -257,7 +258,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         ball_speed_y      = std::rand() % 60 - 30;
         ball_size         = 5;
         ball_y_pos        = std::rand() % 400 + 200;
-        opponent_max_speed= std::rand() % 60 - 30;
+        opponent_max_speed= std::rand() % 14 + 15;
         break;
 
     default:
@@ -307,18 +308,23 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         txRectangle(game_window_margin_x + racket_margin_x - racket_w, opponent_cursor_y_pos - racket_l, game_window_margin_x + racket_margin_x + racket_w, opponent_cursor_y_pos + racket_l); ///opponent's rocket
         txFloodFill(game_window_margin_x + racket_margin_x - racket_w + 1, ball_y_pos - racket_l + 1, TX_WHITE);
 
-        if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w && ///player's rocket hits ball
+        if (    ///player's rocket hits ball
+            ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w &&
             ball_y_pos + ball_size >= cursor_pos.y - racket_l &&
-            ball_y_pos - ball_size <= cursor_pos.y + racket_l ||
-
-            ball_x_pos - ball_size <= game_window_margin_x + racket_margin_x + racket_w && ///opponent's rocket hits ball
+            ball_y_pos - ball_size <= cursor_pos.y + racket_l)
+        {
+            ball_speed_x *= -1;
+            double y_speed_diff_koef[] = {0.1, 0.1, 0.3, 0.5};
+            ball_speed_y = (ball_y_pos - cursor_pos.y)*y_speed_diff_koef[difficulty];
+        }
+        if (    ///opponent's rocket hits ball
+            ball_x_pos - ball_size <= game_window_margin_x + racket_margin_x + racket_w &&
             ball_y_pos + ball_size >= opponent_cursor_y_pos - racket_l &&
             ball_y_pos - ball_size <= opponent_cursor_y_pos + racket_l)
         {
             ball_speed_x *= -1;
             double y_speed_diff_koef[] = {0.1, 0.1, 0.3, 0.5};
-            if (ball_x_pos + ball_size >= game_window_margin_x + game_wind_x_sz - racket_margin_x - racket_w)
-                ball_speed_y = (ball_y_pos - cursor_pos.y)*y_speed_diff_koef[difficulty];
+            ball_speed_y = (ball_y_pos - opponent_cursor_y_pos)*y_speed_diff_koef[difficulty];
         }
 
         ///change score if ball hits the wall
@@ -374,7 +380,6 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
         if (ball_x_pos - ball_size <= screen_frame.left)
         {
-            ///the same way change the score
             ++score.right_border;
 
             std::vector<int>
@@ -428,25 +433,26 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
         ///AI logic
         if (static_cast<double>(std::clock() - opponent_max_speed_change_timer) /
-            static_cast<double>(CLOCKS_PER_SEC)                                     >= 1.0)
+
+            static_cast<double>(CLOCKS_PER_SEC)                                     >= OPPONENT_MAX_SPEED_ASSIGNMENT_COOLDOWN)
         {
             switch (difficulty)
             {
             case 0:
-                opponent_max_speed= std::rand() % 12 - 6;
+                opponent_max_speed= std::rand() % 5 + 1;
                 break;
 
             case 1:
-                opponent_max_speed= std::rand() % 18 - 9;
+                opponent_max_speed= std::rand() % 5 + 6;
                 break;
 
 
             case 2:
-                opponent_max_speed= std::rand() % 24 - 12;
+                opponent_max_speed= std::rand() % 6 + 8;
                 break;
 
             case 3:
-                opponent_max_speed= std::rand() % 60 - 30;
+                opponent_max_speed= std::rand() % 14 + 20;
                 break;
 
             default:
@@ -454,7 +460,11 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
             }
             opponent_max_speed_change_timer = std::clock();
         }
-        opponent_cursor_y_pos += (1 - 2*(ball_y_pos < opponent_cursor_y_pos)) * (rand() % opponent_max_speed);
+        if (ball_y_pos < opponent_cursor_y_pos - racket_l / 2)
+            opponent_cursor_y_pos -= rand() % opponent_max_speed;
+
+        if (ball_y_pos > opponent_cursor_y_pos + racket_l / 2)
+            opponent_cursor_y_pos += rand() % opponent_max_speed;
 
         ball_x_pos += ball_speed_x;
         ball_y_pos += ball_speed_y;
@@ -811,7 +821,19 @@ int main()
     }
     txEnd();
     ///clearing HDC memory
-    free_HDC_mem(title, start_button, settings_button, quit_button, left_arrow, right_arrow, score_to_victory, inc_stv, dec_stv, difficulty, start_game, back_button, score_divider);
+    free_HDC_mem(title,
+                 start_button,
+                 settings_button,
+                 quit_button,
+                 left_arrow,
+                 right_arrow,
+                 score_to_victory,
+                 inc_stv,
+                 dec_stv,
+                 difficulty,
+                 start_game,
+                 back_button,
+                 score_divider);
 
     for (int i = 0; i < 10; ++i)
         free_HDC_mem(numerals[i]);
