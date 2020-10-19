@@ -5,7 +5,7 @@
 #include <ctime>
 #include <cmath>
 
-#define FPS 60
+#define FPS 120
 #define WIND_X_SIZE 800
 #define WIND_Y_SIZE 800
 #define MOUSE_LEFT_CLICK 1
@@ -279,8 +279,15 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
     txBegin();
     clock_t opponent_max_speed_change_timer = std::clock();
+    bool first_hit = true, x_speed_divided = false;
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
+        if (first_hit && !x_speed_divided)
+        {
+            ball_speed_x /= 2;
+            x_speed_divided = true;
+        }
+
         draw_frame(screen_frame, TX_WHITE, frame_thickness);
         POINT cursor_pos = txMousePos();
 
@@ -314,6 +321,12 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
             ball_y_pos - ball_size <= cursor_pos.y + racket_l)
         {
             ball_speed_x *= -1;
+            if (x_speed_divided)
+            {
+                ball_speed_x *= 2;
+                x_speed_divided = false;
+                first_hit = false;
+            }
             double y_speed_diff_koef[] = {0.1, 0.1, 0.3, 0.5};
             ball_speed_y = (ball_y_pos - cursor_pos.y)*y_speed_diff_koef[difficulty];
         }
@@ -323,6 +336,12 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
             ball_y_pos - ball_size <= opponent_cursor_y_pos + racket_l)
         {
             ball_speed_x *= -1;
+            if (x_speed_divided)
+            {
+                ball_speed_x *= 2;
+                x_speed_divided = false;
+                first_hit = false;
+            }
             double y_speed_diff_koef[] = {0.1, 0.1, 0.3, 0.5};
             ball_speed_y = (ball_y_pos - opponent_cursor_y_pos)*y_speed_diff_koef[difficulty];
         }
@@ -375,6 +394,8 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
                 break;
 
             }
+            first_hit = true;
+            x_speed_divided = false;
             continue;
         }
 
@@ -425,6 +446,8 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
                 break;
 
             }
+            first_hit = true;
+            x_speed_divided = false;
             continue;
         }
 
@@ -448,7 +471,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
 
             case 2:
-                opponent_max_speed= std::rand() % 6 + 8;
+                opponent_max_speed= std::rand() % 6 + 10;
                 break;
 
             case 3:
@@ -468,6 +491,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
         ball_x_pos += ball_speed_x;
         ball_y_pos += ball_speed_y;
+
         txSleep(framerate_to_txsleep(FPS));
         txSetFillColor(TX_BLACK);
         txClear();
