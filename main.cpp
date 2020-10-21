@@ -254,11 +254,11 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         if (ball_x_pos == -1)
         {
             ball_speed_x      = 20;
-            ball_speed_y      = std::rand() % 24 - 12;
+            ball_speed_y      = std::rand() % 18 - 9;
             ball_y_pos        = std::rand() % 400 + 200;
         }
         ball_size         = 10;
-        opponent_max_speed= std::rand() % 6 + 5;
+        opponent_max_speed= std::rand() % 10 + 15;
         break;
 
     case 3:
@@ -268,7 +268,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         if (ball_x_pos == -1)
         {
             ball_speed_x      = 30;
-            ball_speed_y      = std::rand() % 60 - 30;
+            ball_speed_y      = std::rand() % 18 - 9;
             ball_y_pos        = std::rand() % 400 + 200;
         }
         ball_size         = 5;
@@ -491,7 +491,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
 
 
             case 2:
-                opponent_max_speed= std::rand() % 6 + 10;
+                opponent_max_speed= std::rand() % 10 + 15;
                 break;
 
             case 3:
@@ -504,10 +504,10 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
             opponent_max_speed_change_timer = std::clock();
         }
         if (ball_y_pos < opponent_cursor_y_pos - racket_l / 2)
-            opponent_cursor_y_pos -= rand() % opponent_max_speed;
+            opponent_cursor_y_pos -= rand() % (opponent_max_speed - difficulty*2) + difficulty*2;
 
         if (ball_y_pos > opponent_cursor_y_pos + racket_l / 2)
-            opponent_cursor_y_pos += rand() % opponent_max_speed;
+            opponent_cursor_y_pos += rand() % (opponent_max_speed - difficulty*2) + difficulty*2;
 
         if (first_hit)
             opponent_cursor_y_pos = ball_y_pos;
