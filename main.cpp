@@ -201,29 +201,34 @@ inline void draw_countdown(HDC *numerals)
     txClear();
 }
 
-inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_mode &current_mode, HDC* numerals, HDC score_divider)
+inline void draw_pause_menu(HDC pause)
+{
+    txBitBlt(txDC(), 0, 0, 800, 800, pause);
+}
+
+inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_mode &current_mode, HDC* numerals, HDC score_divider,
+                      int &ball_speed_x, int &ball_speed_y, int &ball_x_pos, int &ball_y_pos, int &opponent_cursor_y_pos)
 {
     const int racket_w = 10;
     int
         game_wind_x_sz,
         game_wind_y_sz,
         racket_l,
-        ball_speed_x,
-        ball_speed_y,
         ball_size,
-        ball_y_pos,
         opponent_max_speed;
-
     switch (difficulty)
     {
     case 0:
         game_wind_x_sz    = 600;
         game_wind_y_sz    = 300;
         racket_l          = 65;
-        ball_speed_x      = 10;
-        ball_speed_y      = std::rand() % 12 - 6;
         ball_size         = 20;
-        ball_y_pos        = std::rand() % 200 + 160;
+        if (ball_x_pos == -1)
+        {
+            ball_speed_x      = 10;
+            ball_speed_y      = std::rand() % 12 - 6;
+            ball_y_pos        = std::rand() % 200 + 160;
+        }
         opponent_max_speed= std::rand() % 5 + 1;
         break;
 
@@ -231,10 +236,13 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         game_wind_x_sz    = 600;
         game_wind_y_sz    = 400;
         racket_l          = 65;
-        ball_speed_x      = 15;
-        ball_speed_y      = std::rand() % 18 - 9;
+        if (ball_x_pos == -1)
+        {
+            ball_speed_x      = 15;
+            ball_speed_y      = std::rand() % 18 - 9;
+            ball_y_pos        = std::rand() % 300 + 160;
+        }
         ball_size         = 15;
-        ball_y_pos        = std::rand() % 300 + 160;
         opponent_max_speed= std::rand() % 5 + 3;
         break;
 
@@ -243,10 +251,13 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         game_wind_x_sz    = 800;
         game_wind_y_sz    = 600;
         racket_l          = 50;
-        ball_speed_x      = 20;
-        ball_speed_y      = std::rand() % 24 - 12;
+        if (ball_x_pos == -1)
+        {
+            ball_speed_x      = 20;
+            ball_speed_y      = std::rand() % 24 - 12;
+            ball_y_pos        = std::rand() % 400 + 200;
+        }
         ball_size         = 10;
-        ball_y_pos        = std::rand() % 400 + 200;
         opponent_max_speed= std::rand() % 6 + 5;
         break;
 
@@ -254,10 +265,13 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         game_wind_x_sz    = 800;
         game_wind_y_sz    = 600;
         racket_l          = 25;
-        ball_speed_x      = 30;
-        ball_speed_y      = std::rand() % 60 - 30;
+        if (ball_x_pos == -1)
+        {
+            ball_speed_x      = 30;
+            ball_speed_y      = std::rand() % 60 - 30;
+            ball_y_pos        = std::rand() % 400 + 200;
+        }
         ball_size         = 5;
-        ball_y_pos        = std::rand() % 400 + 200;
         opponent_max_speed= std::rand() % 14 + 15;
         break;
 
@@ -265,26 +279,30 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         break;
 
     }
-
-    int ball_x_pos              = (game_wind_x_sz - ball_size) / 2;
     int game_window_margin_x    = (WIND_X_SIZE - game_wind_x_sz) / 2;
     int game_window_margin_top  = 150;
     int frame_thickness         = 2;
     int racket_margin_x         = 20;
-    int opponent_cursor_y_pos   = (WIND_Y_SIZE - game_wind_y_sz) / 2;
-    ball_x_pos += game_window_margin_x;
+
+    if (ball_x_pos == -1)
+    {
+        opponent_cursor_y_pos = (WIND_Y_SIZE - game_wind_y_sz) / 2;
+        ball_x_pos = (game_wind_x_sz - ball_size) / 2;
+        ball_x_pos += game_window_margin_x;
+    }
 
     RECT screen_frame = {game_window_margin_x, game_window_margin_top, game_window_margin_x + game_wind_x_sz, game_window_margin_top + game_wind_y_sz};
     txSetColor(TX_WHITE);
 
     txBegin();
     clock_t opponent_max_speed_change_timer = std::clock();
+    int half_ball_x_speed = ball_speed_x / 2;
     bool first_hit = true, x_speed_divided = false;
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         if (first_hit && !x_speed_divided)
         {
-            ball_speed_x /= 2;
+            ball_speed_x = half_ball_x_speed;
             x_speed_divided = true;
         }
 
@@ -396,6 +414,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
             }
             first_hit = true;
             x_speed_divided = false;
+            ball_speed_x = -abs(ball_speed_x);
             continue;
         }
 
@@ -448,6 +467,7 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
             }
             first_hit = true;
             x_speed_divided = false;
+            ball_speed_x = -abs(ball_speed_x);
             continue;
         }
 
@@ -489,6 +509,9 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         if (ball_y_pos > opponent_cursor_y_pos + racket_l / 2)
             opponent_cursor_y_pos += rand() % opponent_max_speed;
 
+        if (first_hit)
+            opponent_cursor_y_pos = ball_y_pos;
+        ///////////////////////////////////////////////////////////////////////
         ball_x_pos += ball_speed_x;
         ball_y_pos += ball_speed_y;
 
@@ -497,9 +520,16 @@ inline void play_game(int difficulty, int stv, std::pair<int, int> &score, game_
         txClear();
     }
     txEnd();
-    current_mode = MAIN_MENU;
+    current_mode = PAUSE;
     txSetFillColor(TX_BLACK);
     txSleep(200);
+}
+
+inline void reset_game_data(int &ball_pos_x, int &ball_pos_y, std::pair<int, int> &game_score)
+{
+    ball_pos_x = -1;
+    ball_pos_y = -1;
+    game_score = {0, 0};
 }
 
 inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mode, std::vector<int> left_button_coord = {}, std::vector<int> right_button_coord = {})
@@ -746,6 +776,15 @@ int main()
             return 1;
         }
     }
+
+    HDC pause_menu = txLoadImage("Resources\\pause.bmp");
+    txSleep(HDC_LOAD_SLEEP_TIME);
+    if (!pause_menu)
+    {
+        txMessageBox("Failed to load pause.bmp", "Fatal error", MB_ICONERROR);
+        return 1;
+    }
+
     txEnd();
     system("cls");
 
@@ -756,9 +795,14 @@ int main()
     int current_difficulty = NORMAL_DIFF;
     bool is_quit = false;
     txBegin();
-    while (!GetAsyncKeyState(VK_ESCAPE))
+    int ball_speed_x,
+        ball_speed_y,
+        ball_x_pos = -1,
+        ball_y_pos = -1,
+        opponent_cursor_y_pos;
+    game_score = {0, 0};
+    while (true)
     {
-        game_score = {0, 0};
         int mouse_button = txMouseButtons();
 
         switch (current_mode)
@@ -766,7 +810,7 @@ int main()
         case PLAYING:
         {
             draw_countdown(numerals);
-            play_game(current_difficulty, victory_score, game_score, current_mode, numerals, score_divider);
+            play_game(current_difficulty, victory_score, game_score, current_mode, numerals, score_divider, ball_speed_x, ball_speed_y, ball_x_pos, ball_y_pos, opponent_cursor_y_pos);
             break;
         }
         case MAIN_MENU:
@@ -835,6 +879,28 @@ int main()
             }
             break;
         }
+
+        case PAUSE:
+        {
+            draw_pause_menu(pause_menu);
+            POINT cursor_pos = txMousePos();
+
+            if (txMouseButtons() == MOUSE_LEFT_CLICK)
+            {
+
+                RECT continue_button = {250, 255, 545, 305},
+                     quit_button     = {316, 364, 470, 420};
+
+                if (In(cursor_pos, continue_button))
+                    current_mode = PLAYING;
+
+                if (In(cursor_pos, quit_button))
+                {
+                    reset_game_data(ball_x_pos, ball_y_pos, game_score);
+                    current_mode = BEFORE_START;
+                }
+            }
+        }
         }
 
         if (is_quit)
@@ -857,7 +923,8 @@ int main()
                  difficulty,
                  start_game,
                  back_button,
-                 score_divider);
+                 score_divider,
+                 pause_menu);
 
     for (int i = 0; i < 10; ++i)
         free_HDC_mem(numerals[i]);
