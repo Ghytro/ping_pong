@@ -92,15 +92,16 @@ inline void draw_main_menu(HDC title, HDC start_button, HDC settings_button, HDC
         start_button_margin_left = (WIND_X_SIZE - 256) / 2,
         start_button_margin_top  = title_margin_top + 200;
     txBitBlt(txDC(), start_button_margin_left, start_button_margin_top, 256, 99, start_button);
-
+    /*
     int
         settings_button_margin_left = (WIND_X_SIZE - 256) / 2,
         settings_button_margin_top  = start_button_margin_top + 120;
     txBitBlt(txDC(), settings_button_margin_left, settings_button_margin_top, 256, 99, settings_button);
+    */
 
     int
         quit_button_margin_left = (WIND_X_SIZE - 256) / 2,
-        quit_button_margin_top  = settings_button_margin_top + 120;
+        quit_button_margin_top  = title_margin_top + 320;
     txBitBlt(txDC(), quit_button_margin_left, quit_button_margin_top, 256, 99, quit_button);
 
 }
@@ -545,7 +546,7 @@ inline void fill_buttons_coords(std::vector<RECT> &buttons, game_mode current_mo
             settings_button_margin_left = (WIND_X_SIZE - 256) / 2,
             settings_button_margin_top  = start_button_margin_top + 120,
             quit_button_margin_left     = (WIND_X_SIZE - 256) / 2,
-            quit_button_margin_top      = settings_button_margin_top + 120;
+            quit_button_margin_top      = title_margin_top + 320;
 
         temp.push_back({start_button_margin_left, start_button_margin_top, start_button_margin_left + 256, start_button_margin_top + 99});
         temp.push_back({settings_button_margin_left, settings_button_margin_top, settings_button_margin_left + 256, settings_button_margin_top + 99});
@@ -824,11 +825,12 @@ int main()
                 {
                     current_mode = BEFORE_START;
                 }
-
+                /*
                 if (In(cursor_pos, screen_buttons[SETTINGS]))
                 {
                     current_mode = SETTINGS_MENU;
                 }
+                */
 
                 if (In(cursor_pos, screen_buttons[QUIT]))
                 {
